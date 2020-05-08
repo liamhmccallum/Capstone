@@ -1,9 +1,12 @@
 package ParkingApp;
 
 import java.awt.Color;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.io.File;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.swing.Action;
@@ -36,8 +39,7 @@ import ParkingUI.MyWaypoint;
 import javafx.scene.input.KeyEvent;
 
 public class GUI {
-
-	Queries query = new Queries();
+	static JXMapViewer mapViewer = new JXMapViewer();
 
 	public static void main(String[] args) {
 		// Create a TileFactoryInfo for Virtual Earth
@@ -49,7 +51,6 @@ public class GUI {
 		tileFactory.setLocalCache(new FileBasedLocalCache(cacheDir, false));
 
 		// Setup JXMapViewer
-		JXMapViewer mapViewer = new JXMapViewer();
 		mapViewer.setTileFactory(tileFactory);
 
 		GeoPosition athleticCenter = new GeoPosition(34.2265, -118.8762);
@@ -120,223 +121,182 @@ public class GUI {
 		frame.setTitle(String.format("Centered at (%.2f / %.2f) with Zoom: %d", lat, lon, zoom));
 	}
 
-	protected static JMenuBar menuBarSetUp(){
+	protected static JMenuBar menuBarSetUp() {
+		Queries query = new Queries();
 		final JMenuBar toolBar = new JMenuBar();
 		JMenu menu = new JMenu("Search Options");
-		
+
 		ButtonGroup group = new ButtonGroup();
-		
-	    JRadioButtonMenuItem menuItemAny = new JRadioButtonMenuItem("Any");
-	    menuItemAny.addActionListener(new ActionListener(){
-	    	public void actionPerformed(Action e)
-	    	{
 
+		JRadioButtonMenuItem menuItemAny = new JRadioButtonMenuItem("Any");
+		menuItemAny.addItemListener(new ItemListener() {
+			@Override
+			public void itemStateChanged(ItemEvent event) {
+				int state = event.getStateChange();
+				if (state == ItemEvent.SELECTED) {
+					List<ParkingSpot> spotsAvailable = query.findAvailable();
+					Set<MyWaypoint> waypointSelected = new HashSet<MyWaypoint>();
+					for (ParkingSpot temp : spotsAvailable) {
+						Color c;
+						if(temp.getDesignation().indexOf("C") != -1)
+						{
+							c = Color.RED;
+						}else if (temp.getDesignation().indexOf("S") != -1)
+						{
+							c = Color.CYAN;
+						}else if (temp.getDesignation().indexOf("R") != -1)
+						{
+							c = Color.GREEN;
+						}else if (temp.getDesignation().indexOf("E") != -1)
+						{
+							c = Color.BLUE;
+						}else
+						{
+							c = Color.YELLOW;
+						}
+						GeoPosition currentSpot = new GeoPosition(temp.getLatitude().doubleValue(),temp.getLongitude().doubleValue());
+						waypointSelected.addAll(new HashSet<MyWaypoint>(Arrays.asList(new MyWaypoint("", c, currentSpot))));
+					}
+					
+					WaypointPainter<MyWaypoint> waypointPainter = new WaypointPainter<MyWaypoint>();
+					waypointPainter.setWaypoints(waypointSelected);
+					waypointPainter.setRenderer(new FancyWaypointRenderer());
+
+					mapViewer.setOverlayPainter(waypointPainter);
+
+				}
 			}
-	    });
-	    group.add(menuItemAny);
-	    menu.add(menuItemAny);
+		});
+		group.add(menuItemAny);
+		menu.add(menuItemAny);
 
-	    JRadioButtonMenuItem menuItemCommuter = new JRadioButtonMenuItem("Commuter");
-	    group.add(menuItemCommuter);
-	    menu.add(menuItemCommuter);
+		JRadioButtonMenuItem menuItemCommuter = new JRadioButtonMenuItem("Commuter");
+		menuItemCommuter.addItemListener(new ItemListener() {
+			@Override
+			public void itemStateChanged(ItemEvent event) {
+				int state = event.getStateChange();
+				if (state == ItemEvent.SELECTED) {
+					List<ParkingSpot> spotsAvailable = query.findSpecificAvailable("C");
+					Set<MyWaypoint> waypointCommuter = new HashSet<MyWaypoint>();
+					for (ParkingSpot temp : spotsAvailable) {
+						GeoPosition currentSpot = new GeoPosition(temp.getLatitude().doubleValue(),temp.getLongitude().doubleValue());
+						waypointCommuter.addAll(new HashSet<MyWaypoint>(Arrays.asList(new MyWaypoint("", Color.RED, currentSpot))));
+					}
+					
+					WaypointPainter<MyWaypoint> waypointPainter = new WaypointPainter<MyWaypoint>();
+					waypointPainter.setWaypoints(waypointCommuter);
+					waypointPainter.setRenderer(new FancyWaypointRenderer());
 
-	    JRadioButtonMenuItem menuItemStaff = new JRadioButtonMenuItem("Staff");
-	    group.add(menuItemStaff);
-	    menu.add(menuItemStaff);
+					mapViewer.setOverlayPainter(waypointPainter);
 
-	    JRadioButtonMenuItem menuItemResident = new JRadioButtonMenuItem("Resident");
-	    group.add(menuItemResident);
-	    menu.add(menuItemResident);
-	    
-	    JRadioButtonMenuItem menuItemExempt = new JRadioButtonMenuItem("Exempt");
-	    group.add(menuItemExempt);
-	    menu.add(menuItemExempt);
-	    
-	    JRadioButtonMenuItem menuItemGeneral = new JRadioButtonMenuItem("General");
-	    group.add(menuItemGeneral);
-	    menu.add(menuItemGeneral);
-		
-	    toolBar.add(menu);
-	    
+				}
+			}
+		});
+		group.add(menuItemCommuter);
+		menu.add(menuItemCommuter);
+
+		JRadioButtonMenuItem menuItemStaff = new JRadioButtonMenuItem("Staff");
+		menuItemStaff.addItemListener(new ItemListener() {
+			@Override
+			public void itemStateChanged(ItemEvent event) {
+				int state = event.getStateChange();
+				if (state == ItemEvent.SELECTED) {
+					List<ParkingSpot> spotsAvailable = query.findSpecificAvailable("S");
+					Set<MyWaypoint> waypointStaff = new HashSet<MyWaypoint>();
+					for (ParkingSpot temp : spotsAvailable) {
+						GeoPosition currentSpot = new GeoPosition(temp.getLatitude().doubleValue(),temp.getLongitude().doubleValue());
+						waypointStaff.addAll(new HashSet<MyWaypoint>(Arrays.asList(new MyWaypoint("", Color.CYAN, currentSpot))));
+					}
+					
+					WaypointPainter<MyWaypoint> waypointPainter = new WaypointPainter<MyWaypoint>();
+					waypointPainter.setWaypoints(waypointStaff);
+					waypointPainter.setRenderer(new FancyWaypointRenderer());
+
+					mapViewer.setOverlayPainter(waypointPainter);
+
+				}
+			}
+		});
+		group.add(menuItemStaff);
+		menu.add(menuItemStaff);
+
+		JRadioButtonMenuItem menuItemResident = new JRadioButtonMenuItem("Resident");
+		menuItemResident.addItemListener(new ItemListener() {
+			@Override
+			public void itemStateChanged(ItemEvent event) {
+				int state = event.getStateChange();
+				if (state == ItemEvent.SELECTED) {
+					List<ParkingSpot> spotsAvailable = query.findSpecificAvailable("R");
+					Set<MyWaypoint> waypointResident = new HashSet<MyWaypoint>();
+					for (ParkingSpot temp : spotsAvailable) {
+						GeoPosition currentSpot = new GeoPosition(temp.getLatitude().doubleValue(),temp.getLongitude().doubleValue());
+						waypointResident.addAll(new HashSet<MyWaypoint>(Arrays.asList(new MyWaypoint("", Color.GREEN, currentSpot))));
+					}
+					
+					WaypointPainter<MyWaypoint> waypointPainter = new WaypointPainter<MyWaypoint>();
+					waypointPainter.setWaypoints(waypointResident);
+					waypointPainter.setRenderer(new FancyWaypointRenderer());
+
+					mapViewer.setOverlayPainter(waypointPainter);
+
+				}
+			}
+		});
+		group.add(menuItemResident);
+		menu.add(menuItemResident);
+
+		JRadioButtonMenuItem menuItemExempt = new JRadioButtonMenuItem("Exempt");
+		menuItemExempt.addItemListener(new ItemListener() {
+			@Override
+			public void itemStateChanged(ItemEvent event) {
+				int state = event.getStateChange();
+				if (state == ItemEvent.SELECTED) {
+					List<ParkingSpot> spotsAvailable = query.findSpecificAvailable("E");
+					Set<MyWaypoint> waypointExempt = new HashSet<MyWaypoint>();
+					for (ParkingSpot temp : spotsAvailable) {
+						GeoPosition currentSpot = new GeoPosition(temp.getLatitude().doubleValue(),temp.getLongitude().doubleValue());
+						waypointExempt.addAll(new HashSet<MyWaypoint>(Arrays.asList(new MyWaypoint("", Color.BLUE, currentSpot))));
+					}
+					
+					WaypointPainter<MyWaypoint> waypointPainter = new WaypointPainter<MyWaypoint>();
+					waypointPainter.setWaypoints(waypointExempt);
+					waypointPainter.setRenderer(new FancyWaypointRenderer());
+
+					mapViewer.setOverlayPainter(waypointPainter);
+
+				}
+			}
+		});
+		group.add(menuItemExempt);
+		menu.add(menuItemExempt);
+
+		JRadioButtonMenuItem menuItemGeneral = new JRadioButtonMenuItem("General");
+		menuItemGeneral.addItemListener(new ItemListener() {
+			@Override
+			public void itemStateChanged(ItemEvent event) {
+				int state = event.getStateChange();
+				if (state == ItemEvent.SELECTED) {
+					List<ParkingSpot> spotsAvailable = query.findSpecificAvailable("G");
+					Set<MyWaypoint> waypointGeneral = new HashSet<MyWaypoint>();
+					for (ParkingSpot temp : spotsAvailable) {
+						GeoPosition currentSpot = new GeoPosition(temp.getLatitude().doubleValue(),temp.getLongitude().doubleValue());
+						waypointGeneral.addAll(new HashSet<MyWaypoint>(Arrays.asList(new MyWaypoint("", Color.YELLOW, currentSpot))));
+					}
+					
+					WaypointPainter<MyWaypoint> waypointPainter = new WaypointPainter<MyWaypoint>();
+					waypointPainter.setWaypoints(waypointGeneral);
+					waypointPainter.setRenderer(new FancyWaypointRenderer());
+
+					mapViewer.setOverlayPainter(waypointPainter);
+
+				}
+			}
+		});
+		group.add(menuItemGeneral);
+		menu.add(menuItemGeneral);
+
+		toolBar.add(menu);
+
 		return toolBar;
 	}
-
-	//
-	// @Override
-	// public void start(final Stage primaryStage) {}
-	//
-	// mapComponent = new GoogleMapView(true);
-	// mapComponent.addMapInitializedListener(this);
-
-	// BorderPane root = new BorderPane();
-	//
-	// root.setTop(menuSetup());
-	// root.setCenter(mapComponent);
-	//
-	// primaryStage.setTitle("JavaFX App");
-	//
-	// Scene menuItems = new Scene(root, 960, 600);
-	// primaryStage.setScene(menuItems);
-	// primaryStage.show();
-	//
-	// }
-	//
-	// public MenuBar menuSetup() {
-	//
-	// MenuBar menuBar = new MenuBar();
-	//
-	// Menu queryMenu = new Menu("Search Available");
-	// Menu zoomMenu = new Menu("Zoom Functions");
-	//
-	// try {
-	// RadioMenuItem choice1Item = new RadioMenuItem("Any");
-	// EventHandler<ActionEvent> eventAny = new EventHandler<ActionEvent>() {
-	// public void handle(ActionEvent e) {
-	// List<ParkingSpot> spotsAvailable = query.findAvailable();
-	// for (ParkingSpot temp : spotsAvailable) {
-	// System.out.println(temp);
-	//
-	// }
-	// }
-	// };
-	// choice1Item.setOnAction(eventAny);
-	//
-	// RadioMenuItem choice2Item = new RadioMenuItem("Commuter");
-	// EventHandler<ActionEvent> eventCommuter = new EventHandler<ActionEvent>()
-	// {
-	// public void handle(ActionEvent e) {
-	// List<ParkingSpot> spotsAvailable = query.findSpecificAvailable("C");
-	// for (ParkingSpot temp : spotsAvailable) {
-	// System.out.println(temp);
-	// }
-	// }
-	// };
-	// choice2Item.setOnAction(eventCommuter);
-	//
-	// RadioMenuItem choice3Item = new RadioMenuItem("Staff");
-	// EventHandler<ActionEvent> eventStaff = new EventHandler<ActionEvent>() {
-	// public void handle(ActionEvent e) {
-	// List<ParkingSpot> spotsAvailable = query.findSpecificAvailable("S");
-	// for (ParkingSpot temp : spotsAvailable) {
-	// System.out.println(temp);
-	// }
-	// }
-	// };
-	// choice3Item.setOnAction(eventStaff);
-	//
-	// RadioMenuItem choice4Item = new RadioMenuItem("Resident");
-	// EventHandler<ActionEvent> eventResident = new EventHandler<ActionEvent>()
-	// {
-	// public void handle(ActionEvent e) {
-	// List<ParkingSpot> spotsAvailable = query.findSpecificAvailable("R");
-	// for (ParkingSpot temp : spotsAvailable) {
-	// System.out.println(temp);
-	// }
-	// }
-	// };
-	// choice4Item.setOnAction(eventResident);
-	//
-	// RadioMenuItem choice5Item = new RadioMenuItem("Exempt");
-	// EventHandler<ActionEvent> eventExempt = new EventHandler<ActionEvent>() {
-	// public void handle(ActionEvent e) {
-	// List<ParkingSpot> spotsAvailable = query.findSpecificAvailable("E");
-	// for (ParkingSpot temp : spotsAvailable) {
-	// System.out.println(temp);
-	// }
-	// }
-	// };
-	// choice5Item.setOnAction(eventExempt);
-	//
-	// RadioMenuItem choice6Item = new RadioMenuItem("General");
-	// EventHandler<ActionEvent> eventGeneral = new EventHandler<ActionEvent>()
-	// {
-	// public void handle(ActionEvent e) {
-	// List<ParkingSpot> spotsAvailable = query.findSpecificAvailable("G");
-	// for (ParkingSpot temp : spotsAvailable) {
-	// System.out.println(temp);
-	// }
-	// }
-	// };
-	// choice6Item.setOnAction(eventGeneral);
-	//
-	// MenuItem zoomIn = new MenuItem("Zoom In");
-	// EventHandler<ActionEvent> eventZoomIn = new EventHandler<ActionEvent>() {
-	// public void handle(ActionEvent e) {
-	// map.zoomProperty().set(map.getZoom() + 1);
-	// }
-	// };
-	// zoomIn.setOnAction(eventZoomIn);
-	// zoomIn.setDisable(true);
-	//
-	// MenuItem zoomOut = new MenuItem("Zoom Out");
-	// EventHandler<ActionEvent> eventZoomOut = new EventHandler<ActionEvent>()
-	// {
-	// public void handle(ActionEvent e) {
-	// map.zoomProperty().set(map.getZoom() - 1);
-	// }
-	// };
-	//
-	// zoomOut.setOnAction(eventZoomOut);
-	// zoomOut.setDisable(true);
-	//
-	// ToggleGroup toggleGroup = new ToggleGroup();
-	// toggleGroup.getToggles().add(choice1Item);
-	// toggleGroup.getToggles().add(choice2Item);
-	// toggleGroup.getToggles().add(choice3Item);
-	// toggleGroup.getToggles().add(choice4Item);
-	// toggleGroup.getToggles().add(choice5Item);
-	// toggleGroup.getToggles().add(choice6Item);
-	//
-	// queryMenu.getItems().add(choice1Item);
-	// queryMenu.getItems().add(choice2Item);
-	// queryMenu.getItems().add(choice3Item);
-	// queryMenu.getItems().add(choice4Item);
-	// queryMenu.getItems().add(choice5Item);
-	// queryMenu.getItems().add(choice6Item);
-	//
-	// zoomMenu.getItems().add(zoomIn);
-	// zoomMenu.getItems().add(zoomOut);
-	//
-	// menuBar.getMenus().add(queryMenu);
-	// menuBar.getMenus().add(zoomMenu);
-	// } catch (NumberFormatException e) {
-	// e.printStackTrace();
-	// }
-	//
-	// return menuBar;
-	// }
-	//
-	// public void mapInitialized() {
-	//
-	// // System.out.println("MainApp.mapInitialised....");
-	//
-	// // Once the map has been loaded by the Webview, initialize the map
-	// // details.
-	// LatLong center = new LatLong(34.222084, -118.879372);
-	// mapComponent.addMapReadyListener(() -> {
-	// // This call will fail unless the map is completely ready.
-	// checkCenter(center);
-	// });
-	//
-	// MapOptions options = new MapOptions();
-	// options.center(center).zoom(9).overviewMapControl(false).panControl(false).rotateControl(false)
-	// .scaleControl(false).streetViewControl(false).zoomControl(false).mapType(MapTypeIdEnum.TERRAIN)
-	// .clickableIcons(false).disableDefaultUI(true).disableDoubleClickZoom(true).keyboardShortcuts(false)
-	// .styleString(
-	// "[{'featureType':'landscape','stylers':[{'saturation':-100},{'lightness':65},{'visibility':'on'}]},{'featureType':'poi','stylers':[{'saturation':-100},{'lightness':51},{'visibility':'simplified'}]},{'featureType':'road.highway','stylers':[{'saturation':-100},{'visibility':'simplified'}]},{\"featureType\":\"road.arterial\",\"stylers\":[{\"saturation\":-100},{\"lightness\":30},{\"visibility\":\"on\"}]},{\"featureType\":\"road.local\",\"stylers\":[{\"saturation\":-100},{\"lightness\":40},{\"visibility\":\"on\"}]},{\"featureType\":\"transit\",\"stylers\":[{\"saturation\":-100},{\"visibility\":\"simplified\"}]},{\"featureType\":\"administrative.province\",\"stylers\":[{\"visibility\":\"off\"}]},{\"featureType\":\"water\",\"elementType\":\"labels\",\"stylers\":[{\"visibility\":\"on\"},{\"lightness\":-25},{\"saturation\":-100}]},{\"featureType\":\"water\",\"elementType\":\"geometry\",\"stylers\":[{\"hue\":\"#ffff00\"},{\"lightness\":-25},{\"saturation\":-97}]}]");
-	//
-	// //
-	// [{\"featureType\":\"landscape\",\"stylers\":[{\"saturation\":-100},{\"lightness\":65},{\"visibility\":\"on\"}]},{\"featureType\":\"poi\",\"stylers\":[{\"saturation\":-100},{\"lightness\":51},{\"visibility\":\"simplified\"}]},{\"featureType\":\"road.highway\",\"stylers\":[{\"saturation\":-100},{\"visibility\":\"simplified\"}]},{\"featureType\":\"road.arterial\",\"stylers\":[{\"saturation\":-100},{\"lightness\":30},{\"visibility\":\"on\"}]},{\"featureType\":\"road.local\",\"stylers\":[{\"saturation\":-100},{\"lightness\":40},{\"visibility\":\"on\"}]},{\"featureType\":\"transit\",\"stylers\":[{\"saturation\":-100},{\"visibility\":\"simplified\"}]},{\"featureType\":\"administrative.province\",\"stylers\":[{\"visibility\":\"off\"}]},{\"featureType\":\"water\",\"elementType\":\"labels\",\"stylers\":[{\"visibility\":\"on\"},{\"lightness\":-25},{\"saturation\":-100}]},{\"featureType\":\"water\",\"elementType\":\"geometry\",\"stylers\":[{\"hue\":\"#ffff00\"},{\"lightness\":-25},{\"saturation\":-97}]}]
-	// map = mapComponent.createMap(options, false);
-	//
-	// }
-	//
-	// private void checkCenter(LatLong center) {
-	// System.out.println("Testing fromLatLngToPoint using: " + center);
-	// Point2D p = map.fromLatLngToPoint(center);
-	// System.out.println("Testing fromLatLngToPoint result: " + p);
-	// System.out.println("Testing fromLatLngToPoint expected: " +
-	// mapComponent.getWidth() / 2 + ", "
-	// + mapComponent.getHeight() / 2);
-	// }
 }
