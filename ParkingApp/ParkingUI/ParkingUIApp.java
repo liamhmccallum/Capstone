@@ -9,7 +9,6 @@ import java.util.Set;
 import javax.swing.JFrame;
 import javax.swing.event.MouseInputListener;
 import javax.swing.JToolTip;
-//import java.awt.BorderLayout;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
@@ -25,8 +24,6 @@ import org.jxmapviewer.viewer.GeoPosition;
 import org.jxmapviewer.viewer.TileFactoryInfo;
 import org.jxmapviewer.viewer.WaypointPainter;
 
-//import org.jxmapviewer.OSMTileFactoryInfo;
-//import org.jxmapviewer.viewer.TileFactoryInfo;
 
 public class ParkingUIApp {
 
