@@ -6,7 +6,14 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+import javax.swing.Action;
+import javax.swing.ButtonGroup;
 import javax.swing.JFrame;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JRadioButtonMenuItem;
+import javax.swing.JToolBar;
 import javax.swing.event.MouseInputListener;
 import javax.swing.JToolTip;
 import java.beans.PropertyChangeEvent;
@@ -26,6 +33,7 @@ import org.jxmapviewer.viewer.WaypointPainter;
 
 import ParkingUI.FancyWaypointRenderer;
 import ParkingUI.MyWaypoint;
+import javafx.scene.input.KeyEvent;
 
 public class GUI {
 
@@ -44,15 +52,15 @@ public class GUI {
 		JXMapViewer mapViewer = new JXMapViewer();
 		mapViewer.setTileFactory(tileFactory);
 
-		GeoPosition athleticCenter = new GeoPosition(34.2265,-118.8762);
-		GeoPosition montclef = new GeoPosition(34.2250,-118.8765);
-		GeoPosition trinity = new GeoPosition(34.2238,-118.8828);
+		GeoPosition athleticCenter = new GeoPosition(34.2265, -118.8762);
+		GeoPosition montclef = new GeoPosition(34.2250, -118.8765);
+		GeoPosition trinity = new GeoPosition(34.2238, -118.8828);
 		GeoPosition center = new GeoPosition(34.221968, -118.879374);
-		
+
 		// Add Tooltip with Latitude and Longitude of Mouse
-        final JToolTip tooltip = new JToolTip();
-        tooltip.setTipText("Java");
-        tooltip.setComponent(mapViewer);
+		final JToolTip tooltip = new JToolTip();
+		tooltip.setTipText("Java");
+		tooltip.setComponent(mapViewer);
 
 		// Set the focus
 		mapViewer.setZoom(2);
@@ -67,10 +75,8 @@ public class GUI {
 		mapViewer.addKeyListener(new PanKeyListener(mapViewer));
 
 		// Create waypoints from the geo-positions
-		Set<MyWaypoint> waypoints = new HashSet<MyWaypoint>(
-				Arrays.asList(new MyWaypoint("", Color.RED, athleticCenter),
-						new MyWaypoint("", Color.GREEN, montclef),
-						new MyWaypoint("", Color.YELLOW, trinity)));
+		Set<MyWaypoint> waypoints = new HashSet<MyWaypoint>(Arrays.asList(new MyWaypoint("", Color.RED, athleticCenter),
+				new MyWaypoint("", Color.GREEN, montclef), new MyWaypoint("", Color.YELLOW, trinity)));
 
 		// Create a waypoint painter that takes all the waypoints
 		WaypointPainter<MyWaypoint> waypointPainter = new WaypointPainter<MyWaypoint>();
@@ -82,7 +88,10 @@ public class GUI {
 		// Display the viewer in a JFrame
 		JFrame frame = new JFrame("Available Parking");
 		frame.getContentPane().add(mapViewer);
-		frame.setSize(1200,800);
+
+		frame.setJMenuBar(menuBarSetUp());
+
+		frame.setSize(1200, 800);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setVisible(true);
 
@@ -110,7 +119,48 @@ public class GUI {
 
 		frame.setTitle(String.format("Centered at (%.2f / %.2f) with Zoom: %d", lat, lon, zoom));
 	}
-	
+
+	protected static JMenuBar menuBarSetUp(){
+		final JMenuBar toolBar = new JMenuBar();
+		JMenu menu = new JMenu("Search Options");
+		
+		ButtonGroup group = new ButtonGroup();
+		
+	    JRadioButtonMenuItem menuItemAny = new JRadioButtonMenuItem("Any");
+	    menuItemAny.addActionListener(new ActionListener(){
+	    	public void actionPerformed(Action e)
+	    	{
+
+			}
+	    });
+	    group.add(menuItemAny);
+	    menu.add(menuItemAny);
+
+	    JRadioButtonMenuItem menuItemCommuter = new JRadioButtonMenuItem("Commuter");
+	    group.add(menuItemCommuter);
+	    menu.add(menuItemCommuter);
+
+	    JRadioButtonMenuItem menuItemStaff = new JRadioButtonMenuItem("Staff");
+	    group.add(menuItemStaff);
+	    menu.add(menuItemStaff);
+
+	    JRadioButtonMenuItem menuItemResident = new JRadioButtonMenuItem("Resident");
+	    group.add(menuItemResident);
+	    menu.add(menuItemResident);
+	    
+	    JRadioButtonMenuItem menuItemExempt = new JRadioButtonMenuItem("Exempt");
+	    group.add(menuItemExempt);
+	    menu.add(menuItemExempt);
+	    
+	    JRadioButtonMenuItem menuItemGeneral = new JRadioButtonMenuItem("General");
+	    group.add(menuItemGeneral);
+	    menu.add(menuItemGeneral);
+		
+	    toolBar.add(menu);
+	    
+		return toolBar;
+	}
+
 	//
 	// @Override
 	// public void start(final Stage primaryStage) {}
