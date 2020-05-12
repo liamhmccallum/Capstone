@@ -4,19 +4,20 @@ import java.awt.Color;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.io.File;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import javax.swing.Action;
+import javax.swing.Box;
 import javax.swing.ButtonGroup;
+import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JRadioButtonMenuItem;
-import javax.swing.JToolBar;
 import javax.swing.event.MouseInputListener;
 import javax.swing.JToolTip;
 import java.beans.PropertyChangeEvent;
@@ -36,10 +37,11 @@ import org.jxmapviewer.viewer.WaypointPainter;
 
 import ParkingUI.FancyWaypointRenderer;
 import ParkingUI.MyWaypoint;
-import javafx.scene.input.KeyEvent;
 
 public class GUI {
 	static JXMapViewer mapViewer = new JXMapViewer();
+	static Queries query = new Queries();
+	static int AvailableSize = 0;
 
 	public static void main(String[] args) {
 		// Create a TileFactoryInfo for Virtual Earth
@@ -53,10 +55,7 @@ public class GUI {
 		// Setup JXMapViewer
 		mapViewer.setTileFactory(tileFactory);
 
-		GeoPosition athleticCenter = new GeoPosition(34.2265, -118.8762);
-		GeoPosition montclef = new GeoPosition(34.2250, -118.8765);
-		GeoPosition trinity = new GeoPosition(34.2238, -118.8828);
-		GeoPosition center = new GeoPosition(34.221968, -118.879374);
+		GeoPosition center = new GeoPosition(34.224940, -118.877953);
 
 		// Add Tooltip with Latitude and Longitude of Mouse
 		final JToolTip tooltip = new JToolTip();
@@ -64,7 +63,7 @@ public class GUI {
 		tooltip.setComponent(mapViewer);
 
 		// Set the focus
-		mapViewer.setZoom(2);
+		mapViewer.setZoom(3);
 		mapViewer.setAddressLocation(center);
 
 		// Add interactions
@@ -75,20 +74,37 @@ public class GUI {
 		mapViewer.addMouseWheelListener(new ZoomMouseWheelListenerCenter(mapViewer));
 		mapViewer.addKeyListener(new PanKeyListener(mapViewer));
 
-		// Create waypoints from the geo-positions
-		Set<MyWaypoint> waypoints = new HashSet<MyWaypoint>(Arrays.asList(new MyWaypoint("", Color.RED, athleticCenter),
-				new MyWaypoint("", Color.GREEN, montclef), new MyWaypoint("", Color.YELLOW, trinity)));
-
-		// Create a waypoint painter that takes all the waypoints
-		WaypointPainter<MyWaypoint> waypointPainter = new WaypointPainter<MyWaypoint>();
-		waypointPainter.setWaypoints(waypoints);
-		waypointPainter.setRenderer(new FancyWaypointRenderer());
-
-		mapViewer.setOverlayPainter(waypointPainter);
-
 		// Display the viewer in a JFrame
 		JFrame frame = new JFrame("Available Parking");
 		frame.getContentPane().add(mapViewer);
+
+		// Display original Waypoints
+		List<ParkingSpot> spotsAvailable = query.findAvailable();
+		Set<MyWaypoint> waypointSelected = new HashSet<MyWaypoint>();
+		for (ParkingSpot temp : spotsAvailable) {
+			Color c;
+			if (temp.getDesignation().indexOf("C") != -1) {
+				c = Color.RED;
+			} else if (temp.getDesignation().indexOf("S") != -1) {
+				c = Color.CYAN;
+			} else if (temp.getDesignation().indexOf("R") != -1) {
+				c = Color.GREEN;
+			} else if (temp.getDesignation().indexOf("E") != -1) {
+				c = Color.BLUE;
+			} else {
+				c = Color.YELLOW;
+			}
+			GeoPosition currentSpot = new GeoPosition(temp.getLatitude().doubleValue(),
+					temp.getLongitude().doubleValue());
+			waypointSelected.addAll(new HashSet<MyWaypoint>(Arrays.asList(new MyWaypoint("", c, currentSpot))));
+		}
+		AvailableSize = spotsAvailable.size();
+
+		WaypointPainter<MyWaypoint> waypointPainter = new WaypointPainter<MyWaypoint>();
+		waypointPainter.setWaypoints(waypointSelected);
+		waypointPainter.setRenderer(new FancyWaypointRenderer());
+
+		mapViewer.setOverlayPainter(waypointPainter);
 
 		frame.setJMenuBar(menuBarSetUp());
 
@@ -114,21 +130,16 @@ public class GUI {
 	}
 
 	protected static void updateWindowTitle(JFrame frame, JXMapViewer mapViewer) {
-		double lat = mapViewer.getCenterPosition().getLatitude();
-		double lon = mapViewer.getCenterPosition().getLongitude();
-		int zoom = mapViewer.getZoom();
-
-		frame.setTitle(String.format("Centered at (%.2f / %.2f) with Zoom: %d", lat, lon, zoom));
+		frame.setTitle(String.format("Available CLU Parking"));
 	}
 
 	protected static JMenuBar menuBarSetUp() {
-		Queries query = new Queries();
 		final JMenuBar toolBar = new JMenuBar();
 		JMenu menu = new JMenu("Search Options");
 
 		ButtonGroup group = new ButtonGroup();
 
-		JRadioButtonMenuItem menuItemAny = new JRadioButtonMenuItem("Any");
+		JRadioButtonMenuItem menuItemAny = new JRadioButtonMenuItem("Any Available");
 		menuItemAny.addItemListener(new ItemListener() {
 			@Override
 			public void itemStateChanged(ItemEvent event) {
@@ -138,32 +149,27 @@ public class GUI {
 					Set<MyWaypoint> waypointSelected = new HashSet<MyWaypoint>();
 					for (ParkingSpot temp : spotsAvailable) {
 						Color c;
-						if(temp.getDesignation().indexOf("C") != -1)
-						{
+						if (temp.getDesignation().indexOf("C") != -1) {
 							c = Color.RED;
-						}else if (temp.getDesignation().indexOf("S") != -1)
-						{
+						} else if (temp.getDesignation().indexOf("S") != -1) {
 							c = Color.CYAN;
-						}else if (temp.getDesignation().indexOf("R") != -1)
-						{
+						} else if (temp.getDesignation().indexOf("R") != -1) {
 							c = Color.GREEN;
-						}else if (temp.getDesignation().indexOf("E") != -1)
-						{
+						} else if (temp.getDesignation().indexOf("E") != -1) {
 							c = Color.BLUE;
-						}else
-						{
+						} else {
 							c = Color.YELLOW;
 						}
-						GeoPosition currentSpot = new GeoPosition(temp.getLatitude().doubleValue(),temp.getLongitude().doubleValue());
-						waypointSelected.addAll(new HashSet<MyWaypoint>(Arrays.asList(new MyWaypoint("", c, currentSpot))));
+						GeoPosition currentSpot = new GeoPosition(temp.getLatitude().doubleValue(),
+								temp.getLongitude().doubleValue());
+						waypointSelected
+								.addAll(new HashSet<MyWaypoint>(Arrays.asList(new MyWaypoint("", c, currentSpot))));
+
+						WaypointPainter<MyWaypoint> waypointPainter = new WaypointPainter<MyWaypoint>();
+						waypointPainter.setWaypoints(waypointSelected);
+						waypointPainter.setRenderer(new FancyWaypointRenderer());
+						mapViewer.setOverlayPainter(waypointPainter);
 					}
-					
-					WaypointPainter<MyWaypoint> waypointPainter = new WaypointPainter<MyWaypoint>();
-					waypointPainter.setWaypoints(waypointSelected);
-					waypointPainter.setRenderer(new FancyWaypointRenderer());
-
-					mapViewer.setOverlayPainter(waypointPainter);
-
 				}
 			}
 		});
@@ -179,10 +185,12 @@ public class GUI {
 					List<ParkingSpot> spotsAvailable = query.findSpecificAvailable("C");
 					Set<MyWaypoint> waypointCommuter = new HashSet<MyWaypoint>();
 					for (ParkingSpot temp : spotsAvailable) {
-						GeoPosition currentSpot = new GeoPosition(temp.getLatitude().doubleValue(),temp.getLongitude().doubleValue());
-						waypointCommuter.addAll(new HashSet<MyWaypoint>(Arrays.asList(new MyWaypoint("", Color.RED, currentSpot))));
+						GeoPosition currentSpot = new GeoPosition(temp.getLatitude().doubleValue(),
+								temp.getLongitude().doubleValue());
+						waypointCommuter.addAll(
+								new HashSet<MyWaypoint>(Arrays.asList(new MyWaypoint("", Color.RED, currentSpot))));
 					}
-					
+
 					WaypointPainter<MyWaypoint> waypointPainter = new WaypointPainter<MyWaypoint>();
 					waypointPainter.setWaypoints(waypointCommuter);
 					waypointPainter.setRenderer(new FancyWaypointRenderer());
@@ -204,10 +212,12 @@ public class GUI {
 					List<ParkingSpot> spotsAvailable = query.findSpecificAvailable("S");
 					Set<MyWaypoint> waypointStaff = new HashSet<MyWaypoint>();
 					for (ParkingSpot temp : spotsAvailable) {
-						GeoPosition currentSpot = new GeoPosition(temp.getLatitude().doubleValue(),temp.getLongitude().doubleValue());
-						waypointStaff.addAll(new HashSet<MyWaypoint>(Arrays.asList(new MyWaypoint("", Color.CYAN, currentSpot))));
+						GeoPosition currentSpot = new GeoPosition(temp.getLatitude().doubleValue(),
+								temp.getLongitude().doubleValue());
+						waypointStaff.addAll(
+								new HashSet<MyWaypoint>(Arrays.asList(new MyWaypoint("", Color.CYAN, currentSpot))));
 					}
-					
+
 					WaypointPainter<MyWaypoint> waypointPainter = new WaypointPainter<MyWaypoint>();
 					waypointPainter.setWaypoints(waypointStaff);
 					waypointPainter.setRenderer(new FancyWaypointRenderer());
@@ -229,10 +239,12 @@ public class GUI {
 					List<ParkingSpot> spotsAvailable = query.findSpecificAvailable("R");
 					Set<MyWaypoint> waypointResident = new HashSet<MyWaypoint>();
 					for (ParkingSpot temp : spotsAvailable) {
-						GeoPosition currentSpot = new GeoPosition(temp.getLatitude().doubleValue(),temp.getLongitude().doubleValue());
-						waypointResident.addAll(new HashSet<MyWaypoint>(Arrays.asList(new MyWaypoint("", Color.GREEN, currentSpot))));
+						GeoPosition currentSpot = new GeoPosition(temp.getLatitude().doubleValue(),
+								temp.getLongitude().doubleValue());
+						waypointResident.addAll(
+								new HashSet<MyWaypoint>(Arrays.asList(new MyWaypoint("", Color.GREEN, currentSpot))));
 					}
-					
+
 					WaypointPainter<MyWaypoint> waypointPainter = new WaypointPainter<MyWaypoint>();
 					waypointPainter.setWaypoints(waypointResident);
 					waypointPainter.setRenderer(new FancyWaypointRenderer());
@@ -254,10 +266,12 @@ public class GUI {
 					List<ParkingSpot> spotsAvailable = query.findSpecificAvailable("E");
 					Set<MyWaypoint> waypointExempt = new HashSet<MyWaypoint>();
 					for (ParkingSpot temp : spotsAvailable) {
-						GeoPosition currentSpot = new GeoPosition(temp.getLatitude().doubleValue(),temp.getLongitude().doubleValue());
-						waypointExempt.addAll(new HashSet<MyWaypoint>(Arrays.asList(new MyWaypoint("", Color.BLUE, currentSpot))));
+						GeoPosition currentSpot = new GeoPosition(temp.getLatitude().doubleValue(),
+								temp.getLongitude().doubleValue());
+						waypointExempt.addAll(
+								new HashSet<MyWaypoint>(Arrays.asList(new MyWaypoint("", Color.BLUE, currentSpot))));
 					}
-					
+
 					WaypointPainter<MyWaypoint> waypointPainter = new WaypointPainter<MyWaypoint>();
 					waypointPainter.setWaypoints(waypointExempt);
 					waypointPainter.setRenderer(new FancyWaypointRenderer());
@@ -279,10 +293,12 @@ public class GUI {
 					List<ParkingSpot> spotsAvailable = query.findSpecificAvailable("G");
 					Set<MyWaypoint> waypointGeneral = new HashSet<MyWaypoint>();
 					for (ParkingSpot temp : spotsAvailable) {
-						GeoPosition currentSpot = new GeoPosition(temp.getLatitude().doubleValue(),temp.getLongitude().doubleValue());
-						waypointGeneral.addAll(new HashSet<MyWaypoint>(Arrays.asList(new MyWaypoint("", Color.YELLOW, currentSpot))));
+						GeoPosition currentSpot = new GeoPosition(temp.getLatitude().doubleValue(),
+								temp.getLongitude().doubleValue());
+						waypointGeneral.addAll(
+								new HashSet<MyWaypoint>(Arrays.asList(new MyWaypoint("", Color.YELLOW, currentSpot))));
 					}
-					
+
 					WaypointPainter<MyWaypoint> waypointPainter = new WaypointPainter<MyWaypoint>();
 					waypointPainter.setWaypoints(waypointGeneral);
 					waypointPainter.setRenderer(new FancyWaypointRenderer());
@@ -295,8 +311,62 @@ public class GUI {
 		group.add(menuItemGeneral);
 		menu.add(menuItemGeneral);
 
+		JButton menuItemSimulator = new JButton("Simulate Change");
+		menuItemSimulator.addItemListener(new ItemListener() {
+			@Override
+			public void itemStateChanged(ItemEvent event) {
+				int state = event.getStateChange();
+				if (state == ItemEvent.SELECTED) {
+					List<ParkingSpot> spotsAvailable = SimulateSensor();
+					Set<MyWaypoint> waypointItemSimulator = new HashSet<MyWaypoint>();
+					for (ParkingSpot temp : spotsAvailable) {
+						GeoPosition currentSpot = new GeoPosition(temp.getLatitude().doubleValue(),
+								temp.getLongitude().doubleValue());
+						Color c;
+						if (temp.getDesignation().indexOf("C") != -1) {
+							c = Color.RED;
+						} else if (temp.getDesignation().indexOf("S") != -1) {
+							c = Color.CYAN;
+						} else if (temp.getDesignation().indexOf("R") != -1) {
+							c = Color.GREEN;
+						} else if (temp.getDesignation().indexOf("E") != -1) {
+							c = Color.BLUE;
+						} else {
+							c = Color.YELLOW;
+						}
+						waypointItemSimulator
+								.addAll(new HashSet<MyWaypoint>(Arrays.asList(new MyWaypoint("", c, currentSpot))));
+					}
+
+					WaypointPainter<MyWaypoint> waypointPainter = new WaypointPainter<MyWaypoint>();
+					waypointPainter.setWaypoints(waypointItemSimulator);
+					waypointPainter.setRenderer(new FancyWaypointRenderer());
+
+					mapViewer.setOverlayPainter(waypointPainter);
+
+				}
+			}
+		});
 		toolBar.add(menu);
+		toolBar.add(Box.createHorizontalGlue());
+		
+		toolBar.add(menuItemSimulator);
 
 		return toolBar;
 	}
+
+	public static List<ParkingSpot> SimulateSensor() {
+		List<ParkingSpot> newSpotsAvailable;
+		try {
+			int pointAt = (int) (Math.random() * AvailableSize);
+			query.updateParkingSpot(pointAt, true);
+			System.out.println("New Spot Taken: " + pointAt);
+			newSpotsAvailable = query.findAvailable();
+			return newSpotsAvailable;
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+
 }

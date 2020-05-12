@@ -9,6 +9,7 @@
 package org.jxmapviewer.viewer;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 
 /**
  * An immutable coordinate in the real (geographic) world, composed of a
@@ -67,7 +68,7 @@ public class GeoPosition implements Serializable {
                 lonDegrees + (lonMinutes + lonSeconds / 60.0) / 60.0);
     }
 
-    /**
+	/**
      * Get the latitude as decimal degrees
      *
      * @return the latitude as decimal degrees
